@@ -516,6 +516,41 @@ body {
   cursor: crosshair;
 }
 
+/* Frogger Controls & Speed Selector */
+.frogger-controls-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 10px;
+  background: rgba(0, 0, 0, 0.6);
+}
+
+.speed-selector-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.speed-btn {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid var(--border-glass);
+  color: var(--text-muted);
+  padding: 4px 12px;
+  border-radius: var(--radius-full);
+  font-size: 0.8rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.speed-btn.active {
+  background: rgba(251, 191, 36, 0.25);
+  color: var(--text-gold);
+  border-color: var(--text-gold);
+  box-shadow: var(--shadow-gold);
+}
+
 /* On-Screen D-Pad for Pacman/Mobile */
 .dpad-container {
   display: flex;
@@ -523,7 +558,6 @@ body {
   align-items: center;
   gap: 4px;
   padding: 10px;
-  background: rgba(0, 0, 0, 0.5);
   width: 100%;
 }
 

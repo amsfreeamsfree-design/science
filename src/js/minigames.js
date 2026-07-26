@@ -1,4 +1,4 @@
-// Action Arcade Mini-Game Engines (Water Cannon, Stem Jet-Ski Racer, Bubble Shooter, Bee Shooter)
+// Action Arcade Mini-Game Engines (Water Cannon, Stem Frogger Pipe Crossing, Bubble Shooter, Bee Shooter)
 
 import { sound } from './audio.js';
 import { useItem } from './shop.js';
@@ -141,7 +141,7 @@ export class ArcadeGame {
     if (organ === 'roots') {
       this.runWaterCannonGame(canvas, ctx, q);
     } else if (organ === 'stems') {
-      this.runStemRacerGame(canvas, ctx, q);
+      this.runStemFroggerGame(canvas, ctx, q);
     } else if (organ === 'leaves') {
       this.runBubbleShooterGame(canvas, ctx, q);
     } else if (organ === 'flowers') {
@@ -294,154 +294,191 @@ export class ArcadeGame {
   }
 
   // =========================================================================
-  // 🏄‍♂️ GAME 2 [줄기]: 줄기 파이프 워터 서퍼 레이싱 (Stem Pipe Water Surfer)
+  // 🐸 GAME 2 [줄기]: 줄기 파이프 길건너기 아케이드 (Frogger Stem Crossing with Speed Control)
   // =========================================================================
-  runStemRacerGame(canvas, ctx, q) {
+  runStemFroggerGame(canvas, ctx, q) {
     const W = canvas.width;
     const H = canvas.height;
 
-    // 4 Lanes across the stem tunnel
-    const laneWidth = W / 4;
-    const racer = { lane: 1, x: laneWidth * 1.5, y: H - 55, targetX: laneWidth * 1.5, width: 60, height: 40 };
+    // Frogger Player Character
+    const frog = { x: W / 2, y: H - 35, stepX: 45, stepY: 55, radius: 18 };
 
-    // Targets descending down the stem tunnel
+    // Speed Multiplier state (1.0 = Normal, 0.5 = Slow, 1.8 = Fast)
+    let speedMultiplier = 1.0;
+
+    // 4 Moving Log Lanes in Stem Water Channels
+    const lanes = [
+      { y: H - 90, speed: 2, dir: 1, logs: [{ x: 50, w: 120 }, { x: 300, w: 130 }, { x: 550, w: 110 }] },
+      { y: H - 145, speed: 2.8, dir: -1, logs: [{ x: 100, w: 140 }, { x: 380, w: 120 }, { x: 620, w: 130 }] },
+      { y: H - 200, speed: 2.2, dir: 1, logs: [{ x: 80, w: 130 }, { x: 320, w: 140 }, { x: 580, w: 110 }] },
+      { y: H - 255, speed: 3.2, dir: -1, logs: [{ x: 150, w: 120 }, { x: 420, w: 130 }, { x: 650, w: 100 }] }
+    ];
+
+    // Top Goal Option Islands (4 Options)
     const targets = q.options.map((opt, idx) => {
+      const optionWidth = (W - 50) / 4;
       return {
         text: opt,
         isAnswer: opt === q.answer,
-        lane: idx,
-        x: laneWidth * idx + laneWidth / 2,
-        y: -60 - Math.random() * 40,
-        radius: 36,
-        hit: false
+        x: 25 + idx * optionWidth,
+        y: 10,
+        w: optionWidth - 10,
+        h: 50,
+        reached: false
       };
     });
 
-    let speed = 2.5;
-
-    const moveLeft = () => {
-      sound.playPipeSwitch();
-      if (racer.lane > 0) racer.lane -= 1;
-      racer.targetX = laneWidth * racer.lane + laneWidth / 2;
-    };
-
-    const moveRight = () => {
-      sound.playPipeSwitch();
-      if (racer.lane < 3) racer.lane += 1;
-      racer.targetX = laneWidth * racer.lane + laneWidth / 2;
-    };
+    const hopUp = () => { sound.playPipeSwitch(); frog.y -= frog.stepY; };
+    const hopDown = () => { sound.playPipeSwitch(); frog.y = Math.min(H - 35, frog.y + frog.stepY); };
+    const hopLeft = () => { sound.playPipeSwitch(); frog.x = Math.max(30, frog.x - frog.stepX); };
+    const hopRight = () => { sound.playPipeSwitch(); frog.x = Math.min(W - 30, frog.x + frog.stepX); };
 
     const handleKeyDown = (e) => {
-      if (e.key === 'ArrowLeft' || e.key === 'a') moveLeft();
-      if (e.key === 'ArrowRight' || e.key === 'd') moveRight();
+      if (e.key === 'ArrowUp' || e.key === 'w') hopUp();
+      if (e.key === 'ArrowDown' || e.key === 's') hopDown();
+      if (e.key === 'ArrowLeft' || e.key === 'a') hopLeft();
+      if (e.key === 'ArrowRight' || e.key === 'd') hopRight();
     };
 
     window.addEventListener('keydown', handleKeyDown);
 
-    // Canvas click/touch left or right side to steer!
-    canvas.addEventListener('click', (e) => {
-      const rect = canvas.getBoundingClientRect();
-      const clickX = e.clientX - rect.left;
-      if (clickX < racer.x) moveLeft();
-      else moveRight();
-    });
-
+    // On-screen Directional Controls & Speed Selector
     const overlay = document.getElementById('canvas-controls-overlay');
     if (overlay) {
       overlay.innerHTML = `
-        <div style="display:flex;justify-content:space-between;width:100%;padding:10px 40px;">
-          <button id="btn-race-left" class="primary-btn glow-btn" style="width:140px;padding:12px;font-size:1.1rem;">◀ 좌측 이동</button>
-          <button id="btn-race-right" class="primary-btn glow-btn" style="width:140px;padding:12px;font-size:1.1rem;">우측 이동 ▶</button>
+        <div class="frogger-controls-wrapper">
+          <div class="speed-selector-bar">
+            <span style="font-size:0.85rem;font-weight:700;color:#fde047;">⚡ 파이프 속도 조절:</span>
+            <button id="speed-slow" class="speed-btn">🐢 느림</button>
+            <button id="speed-normal" class="speed-btn active">🚗 보통</button>
+            <button id="speed-fast" class="speed-btn">⚡ 빠름</button>
+          </div>
+          <div class="dpad-container">
+            <button id="btn-frog-up" class="dpad-btn">▲</button>
+            <div class="dpad-mid">
+              <button id="btn-frog-left" class="dpad-btn">◀</button>
+              <button id="btn-frog-right" class="dpad-btn">▶</button>
+            </div>
+            <button id="btn-frog-down" class="dpad-btn">▼</button>
+          </div>
         </div>
       `;
-      overlay.querySelector('#btn-race-left').onclick = moveLeft;
-      overlay.querySelector('#btn-race-right').onclick = moveRight;
+
+      overlay.querySelector('#btn-frog-up').onclick = hopUp;
+      overlay.querySelector('#btn-frog-down').onclick = hopDown;
+      overlay.querySelector('#btn-frog-left').onclick = hopLeft;
+      overlay.querySelector('#btn-frog-right').onclick = hopRight;
+
+      const slowBtn = overlay.querySelector('#speed-slow');
+      const normBtn = overlay.querySelector('#speed-normal');
+      const fastBtn = overlay.querySelector('#speed-fast');
+
+      slowBtn.onclick = () => {
+        speedMultiplier = 0.4;
+        slowBtn.classList.add('active'); normBtn.classList.remove('active'); fastBtn.classList.remove('active');
+      };
+      normBtn.onclick = () => {
+        speedMultiplier = 1.0;
+        normBtn.classList.add('active'); slowBtn.classList.remove('active'); fastBtn.classList.remove('active');
+      };
+      fastBtn.onclick = () => {
+        speedMultiplier = 1.8;
+        fastBtn.classList.add('active'); slowBtn.classList.remove('active'); normBtn.classList.remove('active');
+      };
     }
 
-    let bgY = 0;
+    const resetFrog = () => {
+      sound.playWrong();
+      frog.x = W / 2;
+      frog.y = H - 35;
+    };
 
     const loop = () => {
-      // Animated Water Pipe Tunnel Background
-      bgY = (bgY + speed * 2) % 40;
+      // Stem Water Tunnel BG
       ctx.fillStyle = '#0f172a';
       ctx.fillRect(0, 0, W, H);
 
-      // Draw 4 Stem Lanes (Xylem & Phloem)
-      for (let i = 0; i < 4; i++) {
-        const lx = i * laneWidth;
-        ctx.fillStyle = (i === 1 || i === 2) ? 'rgba(14, 165, 233, 0.12)' : 'rgba(234, 179, 8, 0.12)';
-        ctx.fillRect(lx, 0, laneWidth, H);
+      // Start Zone (Bottom) & Goal Zone (Top)
+      ctx.fillStyle = 'rgba(74, 222, 128, 0.2)';
+      ctx.fillRect(0, H - 60, W, 60);
+      ctx.fillStyle = '#4ade80';
+      ctx.font = 'bold 12px Pretendard';
+      ctx.fillText('🐸 시작 지점 (화살표 키로 건너세요!)', 20, H - 20);
 
-        ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
-        ctx.lineWidth = 2;
-        ctx.strokeRect(lx, 0, laneWidth, H);
+      // Render Moving Log Lanes
+      let onLog = false;
+      let logVelocity = 0;
 
-        // Water flow speed lines
-        ctx.strokeStyle = (i === 1 || i === 2) ? 'rgba(56, 189, 248, 0.3)' : 'rgba(250, 204, 21, 0.3)';
-        for (let y = bgY - 40; y < H; y += 40) {
-          ctx.beginPath();
-          ctx.moveTo(lx + laneWidth / 2, y);
-          ctx.lineTo(lx + laneWidth / 2, y + 20);
-          ctx.stroke();
-        }
+      lanes.forEach(lane => {
+        // Water Stream Lane BG
+        ctx.fillStyle = 'rgba(14, 165, 233, 0.25)';
+        ctx.fillRect(0, lane.y - 25, W, 50);
+
+        lane.logs.forEach(log => {
+          log.x += lane.speed * lane.dir * speedMultiplier;
+          if (lane.dir === 1 && log.x > W) log.x = -log.w;
+          if (lane.dir === -1 && log.x < -log.w) log.x = W;
+
+          // Draw Wood/Stem Log
+          ctx.fillStyle = '#78350f';
+          ctx.fillRect(log.x, lane.y - 20, log.w, 40);
+          ctx.strokeStyle = '#b45309';
+          ctx.lineWidth = 3;
+          ctx.strokeRect(log.x, lane.y - 20, log.w, 40);
+
+          // Check if Frog is riding this log
+          if (
+            Math.abs(frog.y - lane.y) < 20 &&
+            frog.x >= log.x && frog.x <= log.x + log.w
+          ) {
+            onLog = true;
+            logVelocity = lane.speed * lane.dir * speedMultiplier;
+          }
+        });
+      });
+
+      // If frog is in water lane but not on any log -> Fall in water & reset!
+      const inWaterZone = frog.y < H - 65 && frog.y > 60;
+      if (inWaterZone && !onLog) {
+        resetFrog();
+      } else if (onLog) {
+        frog.x += logVelocity;
+        // Off-screen reset
+        if (frog.x < 10 || frog.x > W - 10) resetFrog();
       }
 
-      // Smooth racer movement toward targetX
-      racer.x += (racer.targetX - racer.x) * 0.25;
-
-      // Draw Racer (Water Jet-Ski Surfer)
-      ctx.fillStyle = '#0284c7';
-      ctx.beginPath();
-      ctx.moveTo(racer.x, racer.y - 20);
-      ctx.lineTo(racer.x - 22, racer.y + 18);
-      ctx.lineTo(racer.x + 22, racer.y + 18);
-      ctx.closePath();
-      ctx.fill();
-
-      // Water spray particles behind racer
-      ctx.fillStyle = '#7dd3fc';
-      ctx.beginPath();
-      ctx.arc(racer.x, racer.y + 22, 8, 0, Math.PI * 2);
-      ctx.fill();
-
-      ctx.font = '24px serif';
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.fillText('🏄‍♂️', racer.x, racer.y - 5);
-
-      // Move & Draw Target Blocks
+      // Draw Top Goal Options (Islands)
       targets.forEach(t => {
-        if (t.hit) return;
-        t.y += speed;
+        if (t.reached) return;
 
-        // Loop target back up if passed bottom
-        if (t.y > H + 40) {
-          t.y = -50;
-        }
-
-        // Draw Target Option Capsule
-        ctx.fillStyle = 'rgba(15, 23, 42, 0.9)';
-        ctx.beginPath();
-        ctx.arc(t.x, t.y, t.radius, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.strokeStyle = '#38bdf8';
+        ctx.fillStyle = 'rgba(14, 165, 233, 0.9)';
+        ctx.fillRect(t.x, t.y, t.w, t.h);
+        ctx.strokeStyle = '#e0f2fe';
         ctx.lineWidth = 3;
-        ctx.stroke();
+        ctx.strokeRect(t.x, t.y, t.w, t.h);
 
         ctx.fillStyle = '#ffffff';
         ctx.font = 'bold 13px Pretendard';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
-        ctx.fillText(t.text, t.x, t.y);
+        ctx.fillText(t.text, t.x + t.w / 2, t.y + t.h / 2);
 
-        // Check Racer Collision
-        const dist = Math.hypot(racer.x - t.x, racer.y - t.y);
-        if (dist < racer.width / 2 + t.radius) {
-          t.hit = true;
+        // Check if Frog reached goal island
+        if (
+          frog.y <= t.y + t.h + 15 &&
+          frog.x >= t.x && frog.x <= t.x + t.w
+        ) {
+          t.reached = true;
           window.removeEventListener('keydown', handleKeyDown);
           this.handleTargetHit(t, q, canvas);
         }
       });
+
+      // Draw Frogger Character
+      ctx.font = '28px serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('🐸', frog.x, frog.y);
 
       this.animFrameId = requestAnimationFrame(loop);
     };
@@ -672,7 +709,7 @@ export class ArcadeGame {
     feedbackEl.innerHTML = `
       <div class="feedback-card ${isCorrect ? 'correct-card' : 'wrong-card'} glass-panel">
         <div class="feedback-icon">${isCorrect ? '🎯' : (isTimeout ? '⏱️' : '❌')}</div>
-        <h3 class="feedback-title">${isCorrect ? '타겟 명중! 정답입니다!' : (isTimeout ? '시간 초과!' : '아쉽습니다! 오답 타겟입니다.')}</h3>
+        <h3 class="feedback-title">${isCorrect ? '목적지 도달! 정답입니다!' : (isTimeout ? '시간 초과!' : '아쉽습니다! 오답입니다.')}</h3>
 
         <div class="feedback-explanation">
           <p class="answer-highlight"><b>정답:</b> ${q.answer}</p>
