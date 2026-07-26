@@ -379,7 +379,7 @@ body {
   max-width: 680px;
   border-radius: var(--radius-lg);
   overflow: hidden;
-  max-height: 90vh;
+  max-height: 95vh;
   display: flex;
   flex-direction: column;
 }
@@ -415,13 +415,13 @@ body {
 }
 
 .modal-body {
-  padding: 24px;
+  padding: 20px;
   overflow-y: auto;
 }
 
 /* Arcade Card inside Modal */
 .arcade-card {
-  padding: 20px;
+  padding: 16px;
   border-radius: var(--radius-md);
 }
 
@@ -429,7 +429,7 @@ body {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 16px;
+  margin-bottom: 12px;
 }
 
 .timer-container {
@@ -470,185 +470,82 @@ body {
   border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
-/* Interactive Arcade Canvas Zones */
-.arcade-interactive-zone {
-  min-height: 160px;
+/* Mission Box Header */
+.quiz-mission-box {
+  background: rgba(0, 0, 0, 0.45);
+  border: 1px solid rgba(74, 222, 128, 0.3);
+  padding: 12px 16px;
   border-radius: var(--radius-md);
-  margin-bottom: 18px;
-  padding: 16px;
-  position: relative;
-  overflow: hidden;
+  margin-bottom: 14px;
   display: flex;
-  justify-content: center;
   align-items: center;
-  border: 1px solid rgba(255, 255, 255, 0.15);
+  gap: 10px;
 }
 
-.bubbles-float-container, .leaf-bubbles-container {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
-  justify-content: center;
-  align-items: center;
-  width: 100%;
-}
-
-.floating-bubble {
-  background: rgba(255, 255, 255, 0.15);
-  border: 2px solid rgba(255, 255, 255, 0.3);
-  backdrop-filter: blur(8px);
-  padding: 10px 18px;
+.mission-badge {
+  background: var(--accent-green);
+  color: #0b130e;
+  font-weight: 800;
+  padding: 4px 10px;
   border-radius: var(--radius-full);
-  font-weight: 700;
-  cursor: pointer;
-  user-select: none;
-  animation: floatBounce 3s infinite ease-in-out alternate;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
-  transition: transform 0.2s ease, background-color 0.2s ease;
+  font-size: 0.8rem;
+  white-space: nowrap;
 }
 
-.floating-bubble:hover {
-  transform: scale(1.1) translateY(-4px);
-  background: rgba(74, 222, 128, 0.3);
-}
-
-@keyframes floatBounce {
-  0% { transform: translateY(0); }
-  100% { transform: translateY(-12px); }
-}
-
-.pop-anim {
-  animation: popOut 0.3s forwards ease-out;
-}
-
-@keyframes popOut {
-  0% { transform: scale(1); opacity: 1; }
-  50% { transform: scale(1.4); opacity: 0.8; }
-  100% { transform: scale(0); opacity: 0; }
-}
-
-/* Stem Pipe Arcade Track */
-.pipe-tracks {
+/* Canvas Wrapper & Action Arcade Canvas */
+.canvas-wrapper {
+  position: relative;
   width: 100%;
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  margin: 12px 0;
-}
-
-.pipe-line {
-  padding: 12px;
-  border-radius: var(--radius-sm);
-  font-weight: 700;
-  display: flex;
-  justify-content: space-between;
   align-items: center;
-}
-
-.pipe-line.xylem {
-  background: rgba(14, 165, 233, 0.25);
-  border: 1px solid rgba(14, 165, 233, 0.5);
-}
-
-.pipe-line.phloem {
-  background: rgba(234, 179, 8, 0.25);
-  border: 1px solid rgba(234, 179, 8, 0.5);
-}
-
-.arcade-action-btn {
-  background: linear-gradient(135deg, #f97316, #ea580c);
-  color: white;
-  border: none;
-  padding: 10px 20px;
+  margin-bottom: 14px;
+  background: #000;
   border-radius: var(--radius-md);
-  font-weight: 800;
-  cursor: pointer;
-  margin-top: 10px;
+  overflow: hidden;
+  border: 2px solid rgba(255, 255, 255, 0.15);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
 }
 
-/* Flower Bee Scene */
-.flower-scene {
+#arcade-canvas {
+  width: 100%;
+  max-width: 700px;
+  height: auto;
+  display: block;
+  touch-action: none;
+  cursor: crosshair;
+}
+
+/* On-Screen D-Pad for Pacman/Mobile */
+.dpad-container {
   display: flex;
-  justify-content: space-around;
+  flex-direction: column;
   align-items: center;
+  gap: 4px;
+  padding: 10px;
+  background: rgba(0, 0, 0, 0.5);
   width: 100%;
 }
 
-.flower-part {
-  background: rgba(0, 0, 0, 0.4);
-  padding: 12px 18px;
-  border-radius: var(--radius-md);
-  font-weight: 700;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-}
-
-.bee-character {
-  font-size: 2.5rem;
-  cursor: pointer;
-  transition: transform 0.4s ease;
-}
-
-/* Quiz Question & Options */
-.quiz-question-box {
-  background: rgba(0, 0, 0, 0.4);
-  padding: 16px 20px;
-  border-radius: var(--radius-md);
-  margin-bottom: 16px;
-  border: 1px solid var(--border-glass);
-}
-
-.q-tag {
-  color: var(--accent-green);
-  font-weight: 800;
-  margin-right: 6px;
-}
-
-.q-text {
-  font-size: 1.05rem;
-  font-weight: 700;
-  line-height: 1.5;
-  display: inline;
-}
-
-.options-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 12px;
-  margin-bottom: 16px;
-}
-
-.option-btn {
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid var(--border-glass);
-  color: var(--text-main);
-  padding: 14px 16px;
-  border-radius: var(--radius-md);
-  font-size: 0.95rem;
-  font-weight: 600;
-  cursor: pointer;
-  text-align: left;
+.dpad-mid {
   display: flex;
-  align-items: center;
-  gap: 10px;
-  transition: all 0.2s ease;
+  gap: 30px;
 }
 
-.option-btn:hover {
-  background: rgba(74, 222, 128, 0.2);
-  border-color: var(--accent-green);
-  transform: translateY(-2px);
-}
-
-.opt-num {
+.dpad-btn {
   background: rgba(255, 255, 255, 0.15);
-  width: 24px;
-  height: 24px;
-  border-radius: 50%;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  font-size: 0.8rem;
-  font-weight: 800;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  color: white;
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-md);
+  font-size: 1.2rem;
+  cursor: pointer;
+}
+
+.dpad-btn:active {
+  background: var(--accent-green);
+  color: black;
 }
 
 .arcade-item-bar {
@@ -859,9 +756,6 @@ body {
 }
 
 @media (max-width: 640px) {
-  .options-grid {
-    grid-template-columns: 1fr;
-  }
   .hero-banner {
     flex-direction: column;
     align-items: flex-start;
