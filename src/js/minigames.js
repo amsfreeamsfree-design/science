@@ -1,4 +1,4 @@
-// Action Arcade Mini-Game Engines (Water Cannon, Stem Frogger Pipe Crossing, Bubble Shooter, Bee Shooter)
+// Action Arcade Mini-Game Engines (Water Cannon, Stem Frogger Pipe Crossing, Leaf Tap Bubble Shooter, Bee Shooter)
 
 import { sound } from './audio.js';
 import { useItem } from './shop.js';
@@ -300,13 +300,9 @@ export class ArcadeGame {
     const W = canvas.width;
     const H = canvas.height;
 
-    // Frogger Player Character
     const frog = { x: W / 2, y: H - 35, stepX: 45, stepY: 55, radius: 18 };
-
-    // Speed Multiplier state (1.0 = Normal, 0.5 = Slow, 1.8 = Fast)
     let speedMultiplier = 1.0;
 
-    // 4 Moving Log Lanes in Stem Water Channels
     const lanes = [
       { y: H - 90, speed: 2, dir: 1, logs: [{ x: 50, w: 120 }, { x: 300, w: 130 }, { x: 550, w: 110 }] },
       { y: H - 145, speed: 2.8, dir: -1, logs: [{ x: 100, w: 140 }, { x: 380, w: 120 }, { x: 620, w: 130 }] },
@@ -314,7 +310,6 @@ export class ArcadeGame {
       { y: H - 255, speed: 3.2, dir: -1, logs: [{ x: 150, w: 120 }, { x: 420, w: 130 }, { x: 650, w: 100 }] }
     ];
 
-    // Top Goal Option Islands (4 Options)
     const targets = q.options.map((opt, idx) => {
       const optionWidth = (W - 50) / 4;
       return {
@@ -342,7 +337,6 @@ export class ArcadeGame {
 
     window.addEventListener('keydown', handleKeyDown);
 
-    // On-screen Directional Controls & Speed Selector
     const overlay = document.getElementById('canvas-controls-overlay');
     if (overlay) {
       overlay.innerHTML = `
@@ -394,23 +388,19 @@ export class ArcadeGame {
     };
 
     const loop = () => {
-      // Stem Water Tunnel BG
       ctx.fillStyle = '#0f172a';
       ctx.fillRect(0, 0, W, H);
 
-      // Start Zone (Bottom) & Goal Zone (Top)
       ctx.fillStyle = 'rgba(74, 222, 128, 0.2)';
       ctx.fillRect(0, H - 60, W, 60);
       ctx.fillStyle = '#4ade80';
       ctx.font = 'bold 12px Pretendard';
       ctx.fillText('🐸 시작 지점 (화살표 키로 건너세요!)', 20, H - 20);
 
-      // Render Moving Log Lanes
       let onLog = false;
       let logVelocity = 0;
 
       lanes.forEach(lane => {
-        // Water Stream Lane BG
         ctx.fillStyle = 'rgba(14, 165, 233, 0.25)';
         ctx.fillRect(0, lane.y - 25, W, 50);
 
@@ -419,14 +409,12 @@ export class ArcadeGame {
           if (lane.dir === 1 && log.x > W) log.x = -log.w;
           if (lane.dir === -1 && log.x < -log.w) log.x = W;
 
-          // Draw Wood/Stem Log
           ctx.fillStyle = '#78350f';
           ctx.fillRect(log.x, lane.y - 20, log.w, 40);
           ctx.strokeStyle = '#b45309';
           ctx.lineWidth = 3;
           ctx.strokeRect(log.x, lane.y - 20, log.w, 40);
 
-          // Check if Frog is riding this log
           if (
             Math.abs(frog.y - lane.y) < 20 &&
             frog.x >= log.x && frog.x <= log.x + log.w
@@ -437,17 +425,14 @@ export class ArcadeGame {
         });
       });
 
-      // If frog is in water lane but not on any log -> Fall in water & reset!
       const inWaterZone = frog.y < H - 65 && frog.y > 60;
       if (inWaterZone && !onLog) {
         resetFrog();
       } else if (onLog) {
         frog.x += logVelocity;
-        // Off-screen reset
         if (frog.x < 10 || frog.x > W - 10) resetFrog();
       }
 
-      // Draw Top Goal Options (Islands)
       targets.forEach(t => {
         if (t.reached) return;
 
@@ -463,7 +448,6 @@ export class ArcadeGame {
         ctx.textBaseline = 'middle';
         ctx.fillText(t.text, t.x + t.w / 2, t.y + t.h / 2);
 
-        // Check if Frog reached goal island
         if (
           frog.y <= t.y + t.h + 15 &&
           frog.x >= t.x && frog.x <= t.x + t.w
@@ -474,7 +458,6 @@ export class ArcadeGame {
         }
       });
 
-      // Draw Frogger Character
       ctx.font = '28px serif';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
@@ -487,13 +470,13 @@ export class ArcadeGame {
   }
 
   // =========================================================================
-  // 🍃 GAME 3 [잎]: 버블 슈터 & 튕기기 아케이드 (Leaf Bubble Shooter)
+  // 🍃 GAME 3 [잎]: 클릭 조종 광합성 버블 슈터 (Leaf Click-to-Move Bubble Shooter)
   // =========================================================================
   runBubbleShooterGame(canvas, ctx, q) {
     const W = canvas.width;
     const H = canvas.height;
 
-    const paddle = { x: W / 2 - 50, y: H - 25, width: 100, height: 16 };
+    const paddle = { x: W / 2 - 50, y: H - 25, width: 100, height: 16, targetX: W / 2 - 50 };
     const ball = { x: W / 2, y: H - 50, vx: 4, vy: -4, radius: 10 };
 
     const targets = q.options.map((opt, idx) => {
@@ -508,12 +491,56 @@ export class ArcadeGame {
       };
     });
 
-    const handleMouseMove = (e) => {
+    const movePaddleToClick = (clientX) => {
       const rect = canvas.getBoundingClientRect();
-      paddle.x = e.clientX - rect.left - paddle.width / 2;
+      const clickX = clientX - rect.left;
+      paddle.targetX = Math.max(10, Math.min(W - paddle.width - 10, clickX - paddle.width / 2));
+      sound.playPipeSwitch();
     };
 
-    canvas.addEventListener('mousemove', handleMouseMove);
+    // Move paddle when clicked / tapped!
+    const handleClick = (e) => {
+      movePaddleToClick(e.clientX);
+    };
+
+    const handleTouch = (e) => {
+      if (e.touches.length > 0) {
+        movePaddleToClick(e.touches[0].clientX);
+      }
+    };
+
+    canvas.addEventListener('click', handleClick);
+    canvas.addEventListener('touchstart', handleTouch);
+
+    // Key controls
+    const moveLeft = () => {
+      sound.playPipeSwitch();
+      paddle.targetX = Math.max(10, paddle.targetX - 70);
+    };
+    const moveRight = () => {
+      sound.playPipeSwitch();
+      paddle.targetX = Math.min(W - paddle.width - 10, paddle.targetX + 70);
+    };
+
+    const handleKeyDown = (e) => {
+      if (e.key === 'ArrowLeft' || e.key === 'a') moveLeft();
+      if (e.key === 'ArrowRight' || e.key === 'd') moveRight();
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+
+    // On-screen touch movement buttons
+    const overlay = document.getElementById('canvas-controls-overlay');
+    if (overlay) {
+      overlay.innerHTML = `
+        <div style="display:flex;justify-content:space-between;width:100%;padding:10px 40px;">
+          <button id="btn-leaf-left" class="primary-btn glow-btn" style="width:150px;padding:12px;font-size:1.05rem;">◀ 좌측 이동 클릭</button>
+          <button id="btn-leaf-right" class="primary-btn glow-btn" style="width:150px;padding:12px;font-size:1.05rem;">우측 이동 클릭 ▶</button>
+        </div>
+      `;
+      overlay.querySelector('#btn-leaf-left').onclick = moveLeft;
+      overlay.querySelector('#btn-leaf-right').onclick = moveRight;
+    }
 
     const loop = () => {
       ctx.fillStyle = '#064e3b';
@@ -522,6 +549,9 @@ export class ArcadeGame {
       ctx.strokeStyle = '#047857';
       ctx.lineWidth = 3;
       ctx.strokeRect(10, 10, W - 20, H - 20);
+
+      // Smooth movement towards target position when clicked
+      paddle.x += (paddle.targetX - paddle.x) * 0.3;
 
       ball.x += ball.vx;
       ball.y += ball.vy;
@@ -540,11 +570,19 @@ export class ArcadeGame {
         ball.vy = -4;
       }
 
+      // Draw Clickable Leaf Paddle
       ctx.fillStyle = '#34d399';
       ctx.fillRect(paddle.x, paddle.y, paddle.width, paddle.height);
       ctx.strokeStyle = '#a7f3d0';
+      ctx.lineWidth = 3;
       ctx.strokeRect(paddle.x, paddle.y, paddle.width, paddle.height);
 
+      ctx.fillStyle = '#064e3b';
+      ctx.font = 'bold 11px Pretendard';
+      ctx.textAlign = 'center';
+      ctx.fillText('🍃 클릭 이동 잎 패들', paddle.x + paddle.width / 2, paddle.y + 12);
+
+      // Draw Sun Ball
       ctx.fillStyle = '#fde047';
       ctx.beginPath();
       ctx.arc(ball.x, ball.y, ball.radius, 0, Math.PI * 2);
@@ -571,7 +609,9 @@ export class ArcadeGame {
         ) {
           t.destroyed = true;
           ball.vy *= -1;
-          canvas.removeEventListener('mousemove', handleMouseMove);
+          canvas.removeEventListener('click', handleClick);
+          canvas.removeEventListener('touchstart', handleTouch);
+          window.removeEventListener('keydown', handleKeyDown);
           this.handleTargetHit(t, q, canvas);
         }
       });
@@ -662,7 +702,7 @@ export class ArcadeGame {
         ctx.font = 'bold 12px Pretendard';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
-        ctx.fillText(t.text, t.x + t.width / 2, t.y + t.height / 2);
+        ctx.fillText(t.text, t.x + t.width / 2, t.y + t.h / 2);
       });
 
       this.animFrameId = requestAnimationFrame(loop);
