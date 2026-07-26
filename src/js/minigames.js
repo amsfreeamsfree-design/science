@@ -1,4 +1,4 @@
-// Action Arcade Mini-Game Engines (Water Cannon, Pacman Maze, Bubble Shooter, Bee Shooter)
+// Action Arcade Mini-Game Engines (Water Cannon, Stem Jet-Ski Racer, Bubble Shooter, Bee Shooter)
 
 import { sound } from './audio.js';
 import { useItem } from './shop.js';
@@ -141,7 +141,7 @@ export class ArcadeGame {
     if (organ === 'roots') {
       this.runWaterCannonGame(canvas, ctx, q);
     } else if (organ === 'stems') {
-      this.runPacmanMazeGame(canvas, ctx, q);
+      this.runStemRacerGame(canvas, ctx, q);
     } else if (organ === 'leaves') {
       this.runBubbleShooterGame(canvas, ctx, q);
     } else if (organ === 'flowers') {
@@ -159,7 +159,6 @@ export class ArcadeGame {
     const cannon = { x: W / 2, y: H - 30, angle: -Math.PI / 2 };
     const bullets = [];
 
-    // All targets have uniform color so students must solve it themselves!
     const targets = q.options.map((opt, idx) => {
       const isAnswer = opt === q.answer;
       return {
@@ -273,7 +272,6 @@ export class ArcadeGame {
         if (t.x - t.radius < 10 || t.x + t.radius > W - 10) t.vx *= -1;
         if (t.y - t.radius < 20 || t.y + t.radius > H - 100) t.vy *= -1;
 
-        // Uniform Blue Teal styling for all options!
         ctx.fillStyle = 'rgba(14, 165, 233, 0.88)';
         ctx.beginPath();
         ctx.arc(t.x, t.y, t.radius, 0, Math.PI * 2);
@@ -296,98 +294,137 @@ export class ArcadeGame {
   }
 
   // =========================================================================
-  // 🟡 GAME 2 [줄기]: 미로 팩맨 아케이드 (Pacman Stem Maze)
+  // 🏄‍♂️ GAME 2 [줄기]: 줄기 파이프 워터 서퍼 레이싱 (Stem Pipe Water Surfer)
   // =========================================================================
-  runPacmanMazeGame(canvas, ctx, q) {
+  runStemRacerGame(canvas, ctx, q) {
     const W = canvas.width;
     const H = canvas.height;
 
-    const pacman = { x: 60, y: H / 2, radius: 18, vx: 0, vy: 0, speed: 3.5 };
+    // 4 Lanes across the stem tunnel
+    const laneWidth = W / 4;
+    const racer = { lane: 1, x: laneWidth * 1.5, y: H - 55, targetX: laneWidth * 1.5, width: 60, height: 40 };
 
+    // Targets descending down the stem tunnel
     const targets = q.options.map((opt, idx) => {
       return {
         text: opt,
         isAnswer: opt === q.answer,
-        x: 220 + (idx % 2) * 260,
-        y: 80 + Math.floor(idx / 2) * 160,
-        radius: 35,
-        eaten: false
+        lane: idx,
+        x: laneWidth * idx + laneWidth / 2,
+        y: -60 - Math.random() * 40,
+        radius: 36,
+        hit: false
       };
     });
 
+    let speed = 2.5;
+
+    const moveLeft = () => {
+      sound.playPipeSwitch();
+      if (racer.lane > 0) racer.lane -= 1;
+      racer.targetX = laneWidth * racer.lane + laneWidth / 2;
+    };
+
+    const moveRight = () => {
+      sound.playPipeSwitch();
+      if (racer.lane < 3) racer.lane += 1;
+      racer.targetX = laneWidth * racer.lane + laneWidth / 2;
+    };
+
     const handleKeyDown = (e) => {
-      if (e.key === 'ArrowRight' || e.key === 'd') { pacman.vx = pacman.speed; pacman.vy = 0; }
-      if (e.key === 'ArrowLeft' || e.key === 'a') { pacman.vx = -pacman.speed; pacman.vy = 0; }
-      if (e.key === 'ArrowUp' || e.key === 'w') { pacman.vx = 0; pacman.vy = -pacman.speed; }
-      if (e.key === 'ArrowDown' || e.key === 's') { pacman.vx = 0; pacman.vy = pacman.speed; }
+      if (e.key === 'ArrowLeft' || e.key === 'a') moveLeft();
+      if (e.key === 'ArrowRight' || e.key === 'd') moveRight();
     };
 
     window.addEventListener('keydown', handleKeyDown);
 
+    // Canvas click/touch left or right side to steer!
+    canvas.addEventListener('click', (e) => {
+      const rect = canvas.getBoundingClientRect();
+      const clickX = e.clientX - rect.left;
+      if (clickX < racer.x) moveLeft();
+      else moveRight();
+    });
+
     const overlay = document.getElementById('canvas-controls-overlay');
     if (overlay) {
       overlay.innerHTML = `
-        <div class="dpad-container">
-          <button id="btn-up" class="dpad-btn">▲</button>
-          <div class="dpad-mid">
-            <button id="btn-left" class="dpad-btn">◀</button>
-            <button id="btn-right" class="dpad-btn">▶</button>
-          </div>
-          <button id="btn-down" class="dpad-btn">▼</button>
+        <div style="display:flex;justify-content:space-between;width:100%;padding:10px 40px;">
+          <button id="btn-race-left" class="primary-btn glow-btn" style="width:140px;padding:12px;font-size:1.1rem;">◀ 좌측 이동</button>
+          <button id="btn-race-right" class="primary-btn glow-btn" style="width:140px;padding:12px;font-size:1.1rem;">우측 이동 ▶</button>
         </div>
       `;
-      overlay.querySelector('#btn-up').onclick = () => { pacman.vx = 0; pacman.vy = -pacman.speed; };
-      overlay.querySelector('#btn-down').onclick = () => { pacman.vx = 0; pacman.vy = pacman.speed; };
-      overlay.querySelector('#btn-left').onclick = () => { pacman.vx = -pacman.speed; pacman.vy = 0; };
-      overlay.querySelector('#btn-right').onclick = () => { pacman.vx = pacman.speed; pacman.vy = 0; };
+      overlay.querySelector('#btn-race-left').onclick = moveLeft;
+      overlay.querySelector('#btn-race-right').onclick = moveRight;
     }
 
+    let bgY = 0;
+
     const loop = () => {
-      ctx.fillStyle = '#1c130d';
+      // Animated Water Pipe Tunnel Background
+      bgY = (bgY + speed * 2) % 40;
+      ctx.fillStyle = '#0f172a';
       ctx.fillRect(0, 0, W, H);
 
-      ctx.fillStyle = 'rgba(14, 165, 233, 0.15)';
-      ctx.fillRect(20, 20, W - 40, H / 2 - 30);
-      ctx.strokeStyle = '#0ea5e9';
-      ctx.strokeRect(20, 20, W - 40, H / 2 - 30);
-      ctx.fillStyle = '#38bdf8';
-      ctx.font = 'bold 12px Pretendard';
-      ctx.fillText('💧 물관 트랙 (안쪽)', 30, 40);
+      // Draw 4 Stem Lanes (Xylem & Phloem)
+      for (let i = 0; i < 4; i++) {
+        const lx = i * laneWidth;
+        ctx.fillStyle = (i === 1 || i === 2) ? 'rgba(14, 165, 233, 0.12)' : 'rgba(234, 179, 8, 0.12)';
+        ctx.fillRect(lx, 0, laneWidth, H);
 
-      ctx.fillStyle = 'rgba(234, 179, 8, 0.15)';
-      ctx.fillRect(20, H / 2 + 10, W - 40, H / 2 - 30);
-      ctx.strokeStyle = '#eab308';
-      ctx.strokeRect(20, H / 2 + 10, W - 40, H / 2 - 30);
-      ctx.fillStyle = '#fde047';
-      ctx.font = 'bold 12px Pretendard';
-      ctx.fillText('🌾 체관 트랙 (바깥쪽)', 30, H / 2 + 30);
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(lx, 0, laneWidth, H);
 
-      pacman.x += pacman.vx;
-      pacman.y += pacman.vy;
+        // Water flow speed lines
+        ctx.strokeStyle = (i === 1 || i === 2) ? 'rgba(56, 189, 248, 0.3)' : 'rgba(250, 204, 21, 0.3)';
+        for (let y = bgY - 40; y < H; y += 40) {
+          ctx.beginPath();
+          ctx.moveTo(lx + laneWidth / 2, y);
+          ctx.lineTo(lx + laneWidth / 2, y + 20);
+          ctx.stroke();
+        }
+      }
 
-      pacman.x = Math.max(30, Math.min(W - 30, pacman.x));
-      pacman.y = Math.max(30, Math.min(H - 30, pacman.y));
+      // Smooth racer movement toward targetX
+      racer.x += (racer.targetX - racer.x) * 0.25;
 
-      ctx.fillStyle = '#facc15';
+      // Draw Racer (Water Jet-Ski Surfer)
+      ctx.fillStyle = '#0284c7';
       ctx.beginPath();
-      ctx.arc(pacman.x, pacman.y, pacman.radius, 0.2 * Math.PI, 1.8 * Math.PI);
-      ctx.lineTo(pacman.x, pacman.y);
+      ctx.moveTo(racer.x, racer.y - 20);
+      ctx.lineTo(racer.x - 22, racer.y + 18);
+      ctx.lineTo(racer.x + 22, racer.y + 18);
+      ctx.closePath();
       ctx.fill();
 
-      ctx.fillStyle = '#000';
+      // Water spray particles behind racer
+      ctx.fillStyle = '#7dd3fc';
       ctx.beginPath();
-      ctx.arc(pacman.x + 2, pacman.y - 8, 3, 0, Math.PI * 2);
+      ctx.arc(racer.x, racer.y + 22, 8, 0, Math.PI * 2);
       ctx.fill();
 
+      ctx.font = '24px serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('🏄‍♂️', racer.x, racer.y - 5);
+
+      // Move & Draw Target Blocks
       targets.forEach(t => {
-        if (t.eaten) return;
+        if (t.hit) return;
+        t.y += speed;
 
-        // Uniform Orange Gold color for all options!
-        ctx.fillStyle = 'rgba(245, 158, 11, 0.9)';
+        // Loop target back up if passed bottom
+        if (t.y > H + 40) {
+          t.y = -50;
+        }
+
+        // Draw Target Option Capsule
+        ctx.fillStyle = 'rgba(15, 23, 42, 0.9)';
         ctx.beginPath();
         ctx.arc(t.x, t.y, t.radius, 0, Math.PI * 2);
         ctx.fill();
-        ctx.strokeStyle = '#fef08a';
+        ctx.strokeStyle = '#38bdf8';
         ctx.lineWidth = 3;
         ctx.stroke();
 
@@ -397,9 +434,10 @@ export class ArcadeGame {
         ctx.textBaseline = 'middle';
         ctx.fillText(t.text, t.x, t.y);
 
-        const dist = Math.hypot(pacman.x - t.x, pacman.y - t.y);
-        if (dist < pacman.radius + t.radius) {
-          t.eaten = true;
+        // Check Racer Collision
+        const dist = Math.hypot(racer.x - t.x, racer.y - t.y);
+        if (dist < racer.width / 2 + t.radius) {
+          t.hit = true;
           window.removeEventListener('keydown', handleKeyDown);
           this.handleTargetHit(t, q, canvas);
         }
@@ -478,7 +516,6 @@ export class ArcadeGame {
       targets.forEach(t => {
         if (t.destroyed) return;
 
-        // Uniform Emerald Green color for all option bricks!
         ctx.fillStyle = 'rgba(16, 185, 129, 0.9)';
         ctx.fillRect(t.x, t.y, t.width, t.height);
         ctx.strokeStyle = '#d1fae5';
@@ -578,7 +615,6 @@ export class ArcadeGame {
       targets.forEach(t => {
         if (t.hit) return;
 
-        // Uniform Purple Magenta color for all flower targets!
         ctx.fillStyle = 'rgba(192, 38, 211, 0.9)';
         ctx.fillRect(t.x, t.y, t.width, t.height);
         ctx.strokeStyle = '#fae8ff';
