@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>🌱 초등 6학년 과학: 식물의 구조와 기능 아케이드</title>
+  <meta name="description" content="초등학교 6학년 1학기 과학 식물의 구조와 기능(뿌리, 줄기, 잎, 꽃) 단계별 미니게임 학습 앱입니다.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;800&family=Pretendard:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/src/style.css">
+</head>
+<body>
+  <div id="app" class="app-root">
+    <!-- Header / Navbar -->
+    <header class="navbar glass-panel">
+      <div class="nav-brand">
+        <span class="brand-icon">🌱</span>
+        <h1 class="brand-title">식물 탐구 아케이드</h1>
+        <span class="grade-badge">6학년 1학기 과학</span>
+      </div>
+
+      <div class="nav-controls">
+        <div class="user-gold-pill">
+          <span class="gold-icon">💰</span>
+          <span id="nav-gold-display" class="gold-amount">0</span>
+          <span class="gold-unit">G</span>
+        </div>
+
+        <button id="shop-btn" class="icon-btn nav-btn" title="아이템 상점">
+          🛒 상점
+        </button>
+
+        <button id="hall-of-fame-btn" class="icon-btn nav-btn gold-highlight" title="명예의 전당">
+          🏆 명예의 전당
+        </button>
+
+        <button id="sound-toggle-btn" class="icon-btn nav-btn" title="음향 토글">
+          🔊
+        </button>
+
+        <div id="user-profile-widget" class="user-profile-widget">
+          <button id="auth-btn" class="auth-btn">
+            👤 로그인
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <!-- Main Container -->
+    <main class="main-content">
+      <!-- Hero Banner -->
+      <section class="hero-banner glass-panel">
+        <div class="hero-content">
+          <h2 class="hero-title">식물의 구조와 기능 단계별 아케이드 🌿</h2>
+          <p class="hero-subtitle">
+            뿌리 ➔ 줄기 ➔ 잎 ➔ 꽃과 열매! 각 단계별 20~30초 미니게임을 클리어하고 골드를 모아 다음 단계를 해금하세요!
+          </p>
+        </div>
+        <div class="hero-stats">
+          <div class="hero-stat-item">
+            <span class="stat-number" id="cleared-count-display">0 / 4</span>
+            <span class="stat-name">완료 단계</span>
+          </div>
+          <div class="hero-stat-item">
+            <span class="stat-number" id="total-stars-display">0 ★</span>
+            <span class="stat-name">획득한 별</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- Stage Selection Grid -->
+      <section class="stage-section">
+        <h3 class="section-heading">🎮 단계별 미니게임 스테이지</h3>
+        <div id="stage-cards-grid" class="stage-cards-grid">
+          <!-- Dynamically Rendered Stage Cards -->
+        </div>
+      </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+      <p>© 2026 초등 6학년 과학 학습 아케이드 | 식물의 구조와 기능 (뿌리, 줄기, 잎, 꽃과 열매)</p>
+    </footer>
+
+    <!-- MODAL 1: Game Arcade Modal -->
+    <div id="game-modal" class="modal-overlay hidden">
+      <div class="modal-container game-modal-container">
+        <div class="modal-header">
+          <h3 id="game-stage-title" class="modal-title">미니게임 진행 중...</h3>
+          <button id="close-game-modal-btn" class="close-modal-btn">&times;</button>
+        </div>
+        <div id="game-modal-body" class="modal-body">
+          <!-- Mini Game rendered here -->
+        </div>
+      </div>
+    </div>
+
+    <!-- MODAL 2: Hall of Fame Modal (Top 10) -->
+    <div id="hall-modal" class="modal-overlay hidden">
+      <div class="modal-container glass-modal">
+        <div class="modal-header">
+          <h3 class="modal-title">🏆 명예의 전당 (Top 10)</h3>
+          <button id="close-hall-modal-btn" class="close-modal-btn">&times;</button>
+        </div>
+        <div class="modal-body">
+          <!-- Ranking Tabs -->
+          <div class="ranking-tabs">
+            <button id="tab-gold-rank" class="tab-btn active">💰 골드 부자 Top 10</button>
+            <button id="tab-cleared-rank" class="tab-btn">⭐ 마스터 Top 10</button>
+          </div>
+
+          <div id="hall-rankings-list" class="hall-rankings-list">
+            <!-- Dynamic Ranking List -->
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODAL 3: Shop Modal -->
+    <div id="shop-modal" class="modal-overlay hidden">
+      <div class="modal-container glass-modal">
+        <div class="modal-header">
+          <h3 class="modal-title">🛒 아이템 상점</h3>
+          <button id="close-shop-modal-btn" class="close-modal-btn">&times;</button>
+        </div>
+        <div class="modal-body">
+          <div class="shop-gold-info">
+            보유 골드: <span id="shop-user-gold">0</span> Gold
+          </div>
+          <div id="shop-items-grid" class="shop-items-grid">
+            <!-- Dynamic Shop Items -->
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODAL 4: User Auth & Profile Modal -->
+    <div id="auth-modal" class="modal-overlay hidden">
+      <div class="modal-container glass-modal auth-modal-content">
+        <div class="modal-header">
+          <h3 class="modal-title">🔑 탐구자 로그인 & 프로필</h3>
+          <button id="close-auth-modal-btn" class="close-modal-btn">&times;</button>
+        </div>
+        <div class="modal-body text-center">
+          <div id="auth-state-box" class="auth-state-box">
+            <!-- Dynamic Auth buttons -->
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>
