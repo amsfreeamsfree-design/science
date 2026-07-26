@@ -20,14 +20,14 @@ import {
   limit 
 } from 'firebase/firestore';
 
-// Default / fallback Firebase configuration
+// Actual Firebase configuration for science-2229e
 const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || "AIzaSyDemoKeyForPlantScienceArcade12345",
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || "plant-science-arcade.firebaseapp.com",
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || "plant-science-arcade",
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || "plant-science-arcade.appspot.com",
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || "1234567890",
-  appId: import.meta.env.VITE_FIREBASE_APP_ID || "1:1234567890:web:abcdef123456"
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || "AIzaSyAYuAxRH5VNlZYxZEovHMBg6kOvUga8u2M",
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || "science-2229e.firebaseapp.com",
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || "science-2229e",
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || "science-2229e.firebasestorage.app",
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || "1047958465676",
+  appId: import.meta.env.VITE_FIREBASE_APP_ID || "1:1047958465676:web:90e9b42b0a96a17c325fa9"
 };
 
 let app, auth, db;
@@ -86,7 +86,7 @@ export function subscribeAuthState(callback) {
   });
 }
 
-// Sync user score to Firestore
+// Sync user score to Firestore securely per user UID
 export async function syncScoreToFirestore(userData) {
   if (!isFirebaseReady || !db || !userData.uid) return false;
   try {
@@ -102,7 +102,7 @@ export async function syncScoreToFirestore(userData) {
     }, { merge: true });
     return true;
   } catch (e) {
-    console.warn("Firestore sync warning (local storage will be used):", e);
+    console.warn("Firestore sync warning (local storage fallback):", e);
     return false;
   }
 }
