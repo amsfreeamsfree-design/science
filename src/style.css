@@ -434,13 +434,36 @@ body {
 
 .timer-container {
   flex: 1;
-  max-width: 300px;
+  max-width: 420px;
+}
+
+.timer-setting-pills {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.time-limit-btn {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--border-glass);
+  color: var(--text-muted);
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+  font-size: 0.75rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.time-limit-btn.active {
+  background: rgba(74, 222, 128, 0.25);
+  color: var(--accent-green);
+  border-color: var(--accent-green);
 }
 
 .timer-label {
   font-size: 0.85rem;
   color: var(--text-muted);
-  margin-bottom: 4px;
   display: block;
 }
 

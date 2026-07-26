@@ -13,7 +13,8 @@ export class ArcadeGame {
     this.currentQuestionIdx = 0;
     this.score = 0;
     this.earnedGold = 0;
-    this.timeLeft = 25;
+    this.maxTimeLimit = 40; // Default generous 40 seconds per round!
+    this.timeLeft = 40;
     this.timerInterval = null;
     this.animFrameId = null;
     this.combo = 0;
@@ -33,7 +34,7 @@ export class ArcadeGame {
 
   startTimer() {
     this.clearInterval();
-    this.timeLeft = 25;
+    this.timeLeft = this.maxTimeLimit;
     this.updateTimerDisplay();
 
     this.timerInterval = setInterval(() => {
@@ -62,7 +63,7 @@ export class ArcadeGame {
     const timerBar = document.getElementById('timer-bar-fill');
     const timerText = document.getElementById('timer-text');
     if (timerBar) {
-      const percentage = Math.max(0, (this.timeLeft / 25) * 100);
+      const percentage = Math.max(0, (this.timeLeft / this.maxTimeLimit) * 100);
       timerBar.style.width = `${percentage}%`;
       if (percentage < 25) {
         timerBar.style.backgroundColor = '#ef4444';
@@ -92,10 +93,18 @@ export class ArcadeGame {
 
     this.container.innerHTML = `
       <div class="arcade-card glass-panel fade-in">
-        <!-- Top Arcade Bar -->
+        <!-- Top Arcade Bar with Live Timer Limit Selector -->
         <div class="arcade-top-bar">
           <div class="timer-container">
-            <span class="timer-label">⏱️ 남은 시간: <b id="timer-text">${this.timeLeft}초</b></span>
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+              <span class="timer-label">⏱️ 남은 시간: <b id="timer-text">${this.timeLeft}초</b></span>
+              <div class="timer-setting-pills">
+                <span style="font-size:0.75rem;color:#9ca3af;margin-right:4px;">시간 설정:</span>
+                <button class="time-limit-btn ${this.maxTimeLimit === 25 ? 'active' : ''}" data-limit="25">25초</button>
+                <button class="time-limit-btn ${this.maxTimeLimit === 40 ? 'active' : ''}" data-limit="40">40초</button>
+                <button class="time-limit-btn ${this.maxTimeLimit === 60 ? 'active' : ''}" data-limit="60">60초</button>
+              </div>
+            </div>
             <div class="timer-bar-bg">
               <div id="timer-bar-fill" class="timer-bar-fill" style="width: 100%; background-color: ${this.stage.themeColor}"></div>
             </div>
@@ -121,14 +130,31 @@ export class ArcadeGame {
 
         <!-- Helper Items Bar -->
         <div class="arcade-item-bar">
-          <button id="use-time-btn" class="item-btn">⏱️ 시간 +10초 (1 사용)</button>
+          <button id="use-time-btn" class="item-btn">⏱️ 추가 시간 +10초 (1 사용)</button>
           <button id="use-hint-btn" class="item-btn">💡 힌트 (오답 1개 공개)</button>
         </div>
       </div>
     `;
 
+    this.attachTimerSelectorEvents();
     this.initCanvasArcade(q);
     this.attachItemEvents();
+  }
+
+  attachTimerSelectorEvents() {
+    const timeBtns = this.container.querySelectorAll('.time-limit-btn');
+    timeBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        const newLimit = parseInt(btn.getAttribute('data-limit'), 10);
+        this.maxTimeLimit = newLimit;
+        this.timeLeft = newLimit;
+        sound.playClick();
+        this.updateTimerDisplay();
+
+        timeBtns.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+      });
+    });
   }
 
   initCanvasArcade(q) {
@@ -479,11 +505,9 @@ export class ArcadeGame {
     const W = canvas.width;
     const H = canvas.height;
 
-    // Completely clear bottom button overlay so only Canvas touch is used!
     const overlay = document.getElementById('canvas-controls-overlay');
     if (overlay) overlay.innerHTML = '';
 
-    // 4 Stomata Holes
     const holes = [
       { id: 0, x: 180, y: 110, r: 52 },
       { id: 1, x: 520, y: 110, r: 52 },
@@ -491,7 +515,6 @@ export class ArcadeGame {
       { id: 3, x: 520, y: 245, r: 52 }
     ];
 
-    // Moles alternating popping states: 'down', 'rising', 'stay', 'falling'
     const Moles = q.options.map((opt, idx) => {
       const hole = holes[idx];
       return {
@@ -826,7 +849,7 @@ export class ArcadeGame {
           sound.playCorrect();
           this.timeLeft += 10;
           this.updateTimerDisplay();
-          useTimeBtn.textContent = '⏱️ 시간 +10초 적용 완료!';
+          useTimeBtn.textContent = '⏱️ 추가 시간 +10초 적용 완료!';
           useTimeBtn.disabled = true;
         } else {
           alert('상점에서 [시간 +10초 연장] 아이템을 먼저 구매해 주세요!');
