@@ -156,6 +156,9 @@ export class ArcadeGame {
     const W = canvas.width;
     const H = canvas.height;
 
+    const overlay = document.getElementById('canvas-controls-overlay');
+    if (overlay) overlay.innerHTML = '';
+
     const cannon = { x: W / 2, y: H - 30, angle: -Math.PI / 2 };
     const bullets = [];
 
@@ -476,6 +479,10 @@ export class ArcadeGame {
     const W = canvas.width;
     const H = canvas.height;
 
+    // Completely clear bottom button overlay so only Canvas touch is used!
+    const overlay = document.getElementById('canvas-controls-overlay');
+    if (overlay) overlay.innerHTML = '';
+
     // 4 Stomata Holes
     const holes = [
       { id: 0, x: 180, y: 110, r: 52 },
@@ -494,9 +501,9 @@ export class ArcadeGame {
         x: hole.x,
         y: hole.y,
         r: hole.r,
-        upProgress: 0, // 0.0 (hidden) to 1.0 (fully popped up)
+        upProgress: 0,
         state: 'down',
-        timer: idx * 35 + 10, // Staggered initial timers so they pop up in alternating turns!
+        timer: idx * 35 + 10,
         hit: false
       };
     });
@@ -515,7 +522,6 @@ export class ArcadeGame {
 
       Moles.forEach(m => {
         if (m.hit) return;
-        // Check click when mole is popping up (upProgress > 0.3)
         if (m.upProgress > 0.3) {
           const dist = Math.hypot(clickX - m.x, clickY - (m.y - m.upProgress * 45));
           if (dist < m.r + 15) {
@@ -529,37 +535,33 @@ export class ArcadeGame {
     };
 
     canvas.addEventListener('click', handleCanvasClick);
+    canvas.addEventListener('touchstart', (e) => {
+      if (e.touches.length > 0) {
+        const rect = canvas.getBoundingClientRect();
+        const clickX = e.touches[0].clientX - rect.left;
+        const clickY = e.touches[0].clientY - rect.top;
 
-    // On-screen touch buttons overlay
-    const overlay = document.getElementById('canvas-controls-overlay');
-    if (overlay) {
-      overlay.innerHTML = `
-        <div style="display:grid;grid-template-columns:repeat(2, 1fr);gap:10px;width:100%;padding:10px;">
-          ${Moles.map((m, idx) => `
-            <button class="primary-btn glow-btn mole-btn" data-mole-idx="${idx}" style="padding:12px;font-size:1.05rem;background:linear-gradient(135deg,#059669,#047857);">
-              🔨 [기공 ${idx + 1}] ${m.text}
-            </button>
-          `).join('')}
-        </div>
-      `;
+        hammerPos.x = clickX;
+        hammerPos.y = clickY;
+        hammerPos.show = true;
+        setTimeout(() => hammerPos.show = false, 250);
 
-      const moleBtns = overlay.querySelectorAll('.mole-btn');
-      moleBtns.forEach(btn => {
-        btn.addEventListener('click', () => {
-          const idx = parseInt(btn.getAttribute('data-mole-idx'), 10);
-          const m = Moles[idx];
-          if (m && !m.hit) {
-            m.hit = true;
-            sound.playBubblePop();
-            canvas.removeEventListener('click', handleCanvasClick);
-            this.handleTargetHit(m, q, canvas);
+        Moles.forEach(m => {
+          if (m.hit) return;
+          if (m.upProgress > 0.3) {
+            const dist = Math.hypot(clickX - m.x, clickY - (m.y - m.upProgress * 45));
+            if (dist < m.r + 15) {
+              m.hit = true;
+              sound.playBubblePop();
+              canvas.removeEventListener('click', handleCanvasClick);
+              this.handleTargetHit(m, q, canvas);
+            }
           }
         });
-      });
-    }
+      }
+    });
 
     const loop = () => {
-      // Leaf BG
       ctx.fillStyle = '#064e3b';
       ctx.fillRect(0, 0, W, H);
 
@@ -567,7 +569,6 @@ export class ArcadeGame {
       ctx.lineWidth = 4;
       ctx.strokeRect(10, 10, W - 20, H - 20);
 
-      // Update Alternating Popping State for Moles
       Moles.forEach(m => {
         if (m.hit) return;
 
@@ -582,7 +583,7 @@ export class ArcadeGame {
           if (m.upProgress >= 1.0) {
             m.upProgress = 1.0;
             m.state = 'stay';
-            m.timer = 70 + Math.floor(Math.random() * 40); // Stay up for ~1.5 - 2 seconds
+            m.timer = 70 + Math.floor(Math.random() * 40);
           }
         } else if (m.state === 'stay') {
           m.timer -= 1;
@@ -594,14 +595,12 @@ export class ArcadeGame {
           if (m.upProgress <= 0) {
             m.upProgress = 0;
             m.state = 'down';
-            m.timer = 50 + Math.floor(Math.random() * 80); // Wait 1~2s before popping up again!
+            m.timer = 50 + Math.floor(Math.random() * 80);
           }
         }
       });
 
-      // Draw Stomata Holes & Alternating Moles
       Moles.forEach((m, idx) => {
-        // Draw Stomata Hole Base
         ctx.fillStyle = '#022c22';
         ctx.beginPath();
         ctx.ellipse(m.x, m.y + 10, m.r, m.r / 2.2, 0, 0, Math.PI * 2);
@@ -610,17 +609,14 @@ export class ArcadeGame {
         ctx.lineWidth = 3;
         ctx.stroke();
 
-        // Draw Emerging Mole Card if popping up (upProgress > 0)
         if (m.upProgress > 0 && !m.hit) {
           const currentY = m.y - m.upProgress * 45;
 
           ctx.save();
-          // Clip mole emerging out of hole top boundary
           ctx.beginPath();
           ctx.rect(m.x - 75, m.y - 80, 150, 95);
           ctx.clip();
 
-          // Mole Card Body
           ctx.fillStyle = 'rgba(16, 185, 129, 0.95)';
           ctx.beginPath();
           ctx.roundRect(m.x - 65, currentY - 25, 130, 55, 14);
@@ -629,20 +625,17 @@ export class ArcadeGame {
           ctx.lineWidth = 3;
           ctx.stroke();
 
-          // Hole Badge
           ctx.fillStyle = '#fde047';
           ctx.font = 'bold 11px Pretendard';
           ctx.textAlign = 'center';
           ctx.fillText(`[ 기공 ${idx + 1} 솟아오름! ]`, m.x, currentY - 10);
 
-          // Option Text
           ctx.fillStyle = '#ffffff';
           ctx.font = 'bold 13px Pretendard';
           ctx.fillText(m.text, m.x, currentY + 12);
 
           ctx.restore();
         } else if (m.upProgress === 0) {
-          // Idle label inside hole
           ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
           ctx.font = '11px Pretendard';
           ctx.textAlign = 'center';
@@ -650,7 +643,6 @@ export class ArcadeGame {
         }
       });
 
-      // Draw Hammer Effect when clicked
       if (hammerPos.show) {
         ctx.font = '36px serif';
         ctx.textAlign = 'center';
@@ -669,6 +661,9 @@ export class ArcadeGame {
   runBeeShooterGame(canvas, ctx, q) {
     const W = canvas.width;
     const H = canvas.height;
+
+    const overlay = document.getElementById('canvas-controls-overlay');
+    if (overlay) overlay.innerHTML = '';
 
     const bee = { x: 80, y: H / 2, radius: 20 };
     const stamenPollen = [];
