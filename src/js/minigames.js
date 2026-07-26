@@ -1,4 +1,4 @@
-// Action Arcade Mini-Game Engines (Water Cannon, Stem Frogger Pipe Crossing, Leaf Stomata Whack-A-Mole, Bee Shooter)
+// Action Arcade Mini-Game Engines (Water Cannon, Stem Frogger Pipe Crossing, Alternating Whack-A-Mole, Bee Shooter)
 
 import { sound } from './audio.js';
 import { useItem } from './shop.js';
@@ -470,30 +470,33 @@ export class ArcadeGame {
   }
 
   // =========================================================================
-  // 🍃 GAME 3 [잎]: 광합성 기공 두더지 잡기 아케이드 (Leaf Stomata Whack-A-Mole)
+  // 🍃 GAME 3 [잎]: 번갈아 올라오는 광합성 기공 두더지 잡기 (Alternating Whack-A-Mole)
   // =========================================================================
   runStomataWhackGame(canvas, ctx, q) {
     const W = canvas.width;
     const H = canvas.height;
 
-    // 4 Stomata Holes on the leaf
+    // 4 Stomata Holes
     const holes = [
-      { id: 0, x: 170, y: 100, r: 50 },
-      { id: 1, x: 530, y: 100, r: 50 },
-      { id: 2, x: 170, y: 240, r: 50 },
-      { id: 3, x: 530, y: 240, r: 50 }
+      { id: 0, x: 180, y: 110, r: 52 },
+      { id: 1, x: 520, y: 110, r: 52 },
+      { id: 2, x: 180, y: 245, r: 52 },
+      { id: 3, x: 520, y: 245, r: 52 }
     ];
 
-    // Assign 4 options to the 4 holes
+    // Moles alternating popping states: 'down', 'rising', 'stay', 'falling'
     const Moles = q.options.map((opt, idx) => {
       const hole = holes[idx];
       return {
+        id: idx,
         text: opt,
         isAnswer: opt === q.answer,
         x: hole.x,
         y: hole.y,
         r: hole.r,
-        up: true,
+        upProgress: 0, // 0.0 (hidden) to 1.0 (fully popped up)
+        state: 'down',
+        timer: idx * 35 + 10, // Staggered initial timers so they pop up in alternating turns!
         hit: false
       };
     });
@@ -508,30 +511,33 @@ export class ArcadeGame {
       hammerPos.x = clickX;
       hammerPos.y = clickY;
       hammerPos.show = true;
-      setTimeout(() => hammerPos.show = false, 200);
+      setTimeout(() => hammerPos.show = false, 250);
 
       Moles.forEach(m => {
         if (m.hit) return;
-        const dist = Math.hypot(clickX - m.x, clickY - m.y);
-        if (dist < m.r + 10) {
-          m.hit = true;
-          sound.playBubblePop();
-          canvas.removeEventListener('click', handleCanvasClick);
-          this.handleTargetHit(m, q, canvas);
+        // Check click when mole is popping up (upProgress > 0.3)
+        if (m.upProgress > 0.3) {
+          const dist = Math.hypot(clickX - m.x, clickY - (m.y - m.upProgress * 45));
+          if (dist < m.r + 15) {
+            m.hit = true;
+            sound.playBubblePop();
+            canvas.removeEventListener('click', handleCanvasClick);
+            this.handleTargetHit(m, q, canvas);
+          }
         }
       });
     };
 
     canvas.addEventListener('click', handleCanvasClick);
 
-    // On-screen touch buttons overlay for instant tap
+    // On-screen touch buttons overlay
     const overlay = document.getElementById('canvas-controls-overlay');
     if (overlay) {
       overlay.innerHTML = `
         <div style="display:grid;grid-template-columns:repeat(2, 1fr);gap:10px;width:100%;padding:10px;">
           ${Moles.map((m, idx) => `
             <button class="primary-btn glow-btn mole-btn" data-mole-idx="${idx}" style="padding:12px;font-size:1.05rem;background:linear-gradient(135deg,#059669,#047857);">
-              🔨 [${idx + 1}] ${m.text}
+              🔨 [기공 ${idx + 1}] ${m.text}
             </button>
           `).join('')}
         </div>
@@ -561,11 +567,41 @@ export class ArcadeGame {
       ctx.lineWidth = 4;
       ctx.strokeRect(10, 10, W - 20, H - 20);
 
-      // Draw Stomata Holes & Emerging Moles
-      Moles.forEach((m, idx) => {
+      // Update Alternating Popping State for Moles
+      Moles.forEach(m => {
         if (m.hit) return;
 
-        // Hole Shadow
+        if (m.state === 'down') {
+          m.upProgress = 0;
+          m.timer -= 1;
+          if (m.timer <= 0) {
+            m.state = 'rising';
+          }
+        } else if (m.state === 'rising') {
+          m.upProgress += 0.08;
+          if (m.upProgress >= 1.0) {
+            m.upProgress = 1.0;
+            m.state = 'stay';
+            m.timer = 70 + Math.floor(Math.random() * 40); // Stay up for ~1.5 - 2 seconds
+          }
+        } else if (m.state === 'stay') {
+          m.timer -= 1;
+          if (m.timer <= 0) {
+            m.state = 'falling';
+          }
+        } else if (m.state === 'falling') {
+          m.upProgress -= 0.08;
+          if (m.upProgress <= 0) {
+            m.upProgress = 0;
+            m.state = 'down';
+            m.timer = 50 + Math.floor(Math.random() * 80); // Wait 1~2s before popping up again!
+          }
+        }
+      });
+
+      // Draw Stomata Holes & Alternating Moles
+      Moles.forEach((m, idx) => {
+        // Draw Stomata Hole Base
         ctx.fillStyle = '#022c22';
         ctx.beginPath();
         ctx.ellipse(m.x, m.y + 10, m.r, m.r / 2.2, 0, 0, Math.PI * 2);
@@ -574,25 +610,44 @@ export class ArcadeGame {
         ctx.lineWidth = 3;
         ctx.stroke();
 
-        // Emerging Stomata Option Card (Whack Target)
-        ctx.fillStyle = 'rgba(16, 185, 129, 0.95)';
-        ctx.beginPath();
-        ctx.roundRect(m.x - 65, m.y - 45, 130, 60, 14);
-        ctx.fill();
-        ctx.strokeStyle = '#a7f3d0';
-        ctx.lineWidth = 3;
-        ctx.stroke();
+        // Draw Emerging Mole Card if popping up (upProgress > 0)
+        if (m.upProgress > 0 && !m.hit) {
+          const currentY = m.y - m.upProgress * 45;
 
-        // Number Badge
-        ctx.fillStyle = '#fde047';
-        ctx.font = 'bold 12px Pretendard';
-        ctx.textAlign = 'center';
-        ctx.fillText(`[ 기공 ${idx + 1} ]`, m.x, m.y - 26);
+          ctx.save();
+          // Clip mole emerging out of hole top boundary
+          ctx.beginPath();
+          ctx.rect(m.x - 75, m.y - 80, 150, 95);
+          ctx.clip();
 
-        // Option Text
-        ctx.fillStyle = '#ffffff';
-        ctx.font = 'bold 14px Pretendard';
-        ctx.fillText(m.text, m.x, m.y);
+          // Mole Card Body
+          ctx.fillStyle = 'rgba(16, 185, 129, 0.95)';
+          ctx.beginPath();
+          ctx.roundRect(m.x - 65, currentY - 25, 130, 55, 14);
+          ctx.fill();
+          ctx.strokeStyle = '#a7f3d0';
+          ctx.lineWidth = 3;
+          ctx.stroke();
+
+          // Hole Badge
+          ctx.fillStyle = '#fde047';
+          ctx.font = 'bold 11px Pretendard';
+          ctx.textAlign = 'center';
+          ctx.fillText(`[ 기공 ${idx + 1} 솟아오름! ]`, m.x, currentY - 10);
+
+          // Option Text
+          ctx.fillStyle = '#ffffff';
+          ctx.font = 'bold 13px Pretendard';
+          ctx.fillText(m.text, m.x, currentY + 12);
+
+          ctx.restore();
+        } else if (m.upProgress === 0) {
+          // Idle label inside hole
+          ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
+          ctx.font = '11px Pretendard';
+          ctx.textAlign = 'center';
+          ctx.fillText(`기공 ${idx + 1} 대기중...`, m.x, m.y + 10);
+        }
       });
 
       // Draw Hammer Effect when clicked
