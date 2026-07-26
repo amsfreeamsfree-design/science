@@ -1,4 +1,4 @@
-// Action Arcade Mini-Game Engines (Water Cannon, Stem Frogger Pipe Crossing, Leaf Tap Bubble Shooter, Bee Shooter)
+// Action Arcade Mini-Game Engines (Water Cannon, Stem Frogger Pipe Crossing, Leaf Click-to-Shoot Sunbeam Cannon, Bee Shooter)
 
 import { sound } from './audio.js';
 import { useItem } from './shop.js';
@@ -470,79 +470,78 @@ export class ArcadeGame {
   }
 
   // =========================================================================
-  // 🍃 GAME 3 [잎]: 클릭 조종 광합성 버블 슈터 (Leaf Click-to-Move Bubble Shooter)
+  // 🍃 GAME 3 [잎]: 버튼 클릭 발사 광합성 탄환 아케이드 (Click-to-Shoot Sunbeam Cannon)
   // =========================================================================
   runBubbleShooterGame(canvas, ctx, q) {
     const W = canvas.width;
     const H = canvas.height;
 
-    const paddle = { x: W / 2 - 50, y: H - 25, width: 100, height: 16, targetX: W / 2 - 50 };
-    const ball = { x: W / 2, y: H - 50, vx: 4, vy: -4, radius: 10 };
+    // Cannon sitting at bottom
+    const cannon = { x: W / 2, y: H - 30, angle: -Math.PI / 2 };
+    const bullets = [];
 
+    // Option Target Bricks placed at top
     const targets = q.options.map((opt, idx) => {
+      const optionWidth = (W - 60) / 4;
       return {
         text: opt,
         isAnswer: opt === q.answer,
-        x: 80 + idx * 155,
-        y: 70,
-        width: 130,
-        height: 50,
-        destroyed: false
+        x: 20 + idx * optionWidth + idx * 10,
+        y: 60,
+        width: optionWidth,
+        height: 60,
+        hit: false
       };
     });
 
-    const movePaddleToClick = (clientX) => {
+    let mousePos = { x: W / 2, y: 50 };
+
+    const handleMouseMove = (e) => {
       const rect = canvas.getBoundingClientRect();
-      const clickX = clientX - rect.left;
-      paddle.targetX = Math.max(10, Math.min(W - paddle.width - 10, clickX - paddle.width / 2));
-      sound.playPipeSwitch();
+      mousePos.x = e.clientX - rect.left;
+      mousePos.y = e.clientY - rect.top;
+      cannon.angle = Math.atan2(mousePos.y - cannon.y, mousePos.x - cannon.x);
     };
 
-    // Move paddle when clicked / tapped!
-    const handleClick = (e) => {
-      movePaddleToClick(e.clientX);
+    const handleShoot = () => {
+      sound.playBubblePop();
+      const speed = 9;
+      bullets.push({
+        x: cannon.x + Math.cos(cannon.angle) * 35,
+        y: cannon.y + Math.sin(cannon.angle) * 35,
+        vx: Math.cos(cannon.angle) * speed,
+        vy: Math.sin(cannon.angle) * speed,
+        radius: 12
+      });
     };
 
-    const handleTouch = (e) => {
+    canvas.addEventListener('mousemove', handleMouseMove);
+    canvas.addEventListener('click', handleShoot);
+    canvas.addEventListener('touchstart', (e) => {
+      const rect = canvas.getBoundingClientRect();
       if (e.touches.length > 0) {
-        movePaddleToClick(e.touches[0].clientX);
+        mousePos.x = e.touches[0].clientX - rect.left;
+        mousePos.y = e.touches[0].clientY - rect.top;
+        cannon.angle = Math.atan2(mousePos.y - cannon.y, mousePos.x - cannon.x);
+        handleShoot();
       }
-    };
+    });
 
-    canvas.addEventListener('click', handleClick);
-    canvas.addEventListener('touchstart', handleTouch);
-
-    // Key controls
-    const moveLeft = () => {
-      sound.playPipeSwitch();
-      paddle.targetX = Math.max(10, paddle.targetX - 70);
-    };
-    const moveRight = () => {
-      sound.playPipeSwitch();
-      paddle.targetX = Math.min(W - paddle.width - 10, paddle.targetX + 70);
-    };
-
-    const handleKeyDown = (e) => {
-      if (e.key === 'ArrowLeft' || e.key === 'a') moveLeft();
-      if (e.key === 'ArrowRight' || e.key === 'd') moveRight();
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-
-    // On-screen touch movement buttons
+    // Dedicated On-screen Shoot Button
     const overlay = document.getElementById('canvas-controls-overlay');
     if (overlay) {
       overlay.innerHTML = `
-        <div style="display:flex;justify-content:space-between;width:100%;padding:10px 40px;">
-          <button id="btn-leaf-left" class="primary-btn glow-btn" style="width:150px;padding:12px;font-size:1.05rem;">◀ 좌측 이동 클릭</button>
-          <button id="btn-leaf-right" class="primary-btn glow-btn" style="width:150px;padding:12px;font-size:1.05rem;">우측 이동 클릭 ▶</button>
+        <div style="display:flex;justify-content:center;width:100%;padding:10px;">
+          <button id="btn-fire-sun" class="primary-btn glow-btn" style="width:240px;padding:14px;font-size:1.15rem;background:linear-gradient(135deg,#f59e0b,#d97706);">
+            ☀️ 광합성 탄환 발사! (클릭)
+          </button>
         </div>
       `;
-      overlay.querySelector('#btn-leaf-left').onclick = moveLeft;
-      overlay.querySelector('#btn-leaf-right').onclick = moveRight;
+      overlay.querySelector('#btn-fire-sun').onclick = handleShoot;
     }
 
     const loop = () => {
+      // Leaf BG
       ctx.fillStyle = '#064e3b';
       ctx.fillRect(0, 0, W, H);
 
@@ -550,51 +549,67 @@ export class ArcadeGame {
       ctx.lineWidth = 3;
       ctx.strokeRect(10, 10, W - 20, H - 20);
 
-      // Smooth movement towards target position when clicked
-      paddle.x += (paddle.targetX - paddle.x) * 0.3;
-
-      ball.x += ball.vx;
-      ball.y += ball.vy;
-
-      if (ball.x - ball.radius < 0 || ball.x + ball.radius > W) ball.vx *= -1;
-      if (ball.y - ball.radius < 0) ball.vy *= -1;
-
-      if (ball.y + ball.radius >= paddle.y && ball.x >= paddle.x && ball.x <= paddle.x + paddle.width) {
-        ball.vy = -Math.abs(ball.vy);
-        sound.playPipeSwitch();
-      }
-
-      if (ball.y > H) {
-        ball.x = W / 2;
-        ball.y = H - 50;
-        ball.vy = -4;
-      }
-
-      // Draw Clickable Leaf Paddle
-      ctx.fillStyle = '#34d399';
-      ctx.fillRect(paddle.x, paddle.y, paddle.width, paddle.height);
-      ctx.strokeStyle = '#a7f3d0';
-      ctx.lineWidth = 3;
-      ctx.strokeRect(paddle.x, paddle.y, paddle.width, paddle.height);
-
-      ctx.fillStyle = '#064e3b';
-      ctx.font = 'bold 11px Pretendard';
-      ctx.textAlign = 'center';
-      ctx.fillText('🍃 클릭 이동 잎 패들', paddle.x + paddle.width / 2, paddle.y + 12);
-
-      // Draw Sun Ball
+      // Draw Cannon Base & Barrel
+      ctx.save();
+      ctx.translate(cannon.x, cannon.y);
+      ctx.rotate(cannon.angle);
       ctx.fillStyle = '#fde047';
-      ctx.beginPath();
-      ctx.arc(ball.x, ball.y, ball.radius, 0, Math.PI * 2);
-      ctx.fill();
+      ctx.fillRect(0, -10, 40, 20);
+      ctx.fillStyle = '#f59e0b';
+      ctx.fillRect(30, -12, 10, 24);
+      ctx.restore();
 
+      ctx.fillStyle = '#10b981';
+      ctx.beginPath();
+      ctx.arc(cannon.x, cannon.y, 24, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#ffffff';
+      ctx.font = 'bold 12px Pretendard';
+      ctx.textAlign = 'center';
+      ctx.fillText('🍃 잎 탄환 대포', cannon.x, cannon.y + 35);
+
+      // Update & Draw Bullets
+      for (let i = bullets.length - 1; i >= 0; i--) {
+        const b = bullets[i];
+        b.x += b.vx;
+        b.y += b.vy;
+
+        ctx.fillStyle = '#fde047';
+        ctx.beginPath();
+        ctx.arc(b.x, b.y, b.radius, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = '#fef08a';
+        ctx.lineWidth = 3;
+        ctx.stroke();
+
+        // Check Brick Collision
+        targets.forEach(t => {
+          if (t.hit) return;
+          if (
+            b.x + b.radius >= t.x && b.x - b.radius <= t.x + t.width &&
+            b.y - b.radius <= t.y + t.height && b.y + b.radius >= t.y
+          ) {
+            t.hit = true;
+            bullets.splice(i, 1);
+            canvas.removeEventListener('mousemove', handleMouseMove);
+            canvas.removeEventListener('click', handleShoot);
+            this.handleTargetHit(t, q, canvas);
+          }
+        });
+
+        if (b.x < 0 || b.x > W || b.y < 0 || b.y > H) {
+          bullets.splice(i, 1);
+        }
+      }
+
+      // Draw Option Target Bricks (Uniform emerald color!)
       targets.forEach(t => {
-        if (t.destroyed) return;
+        if (t.hit) return;
 
         ctx.fillStyle = 'rgba(16, 185, 129, 0.9)';
         ctx.fillRect(t.x, t.y, t.width, t.height);
         ctx.strokeStyle = '#d1fae5';
-        ctx.lineWidth = 2;
+        ctx.lineWidth = 3;
         ctx.strokeRect(t.x, t.y, t.width, t.height);
 
         ctx.fillStyle = '#ffffff';
@@ -602,18 +617,6 @@ export class ArcadeGame {
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         ctx.fillText(t.text, t.x + t.width / 2, t.y + t.height / 2);
-
-        if (
-          ball.x > t.x && ball.x < t.x + t.width &&
-          ball.y - ball.radius < t.y + t.height && ball.y + ball.radius > t.y
-        ) {
-          t.destroyed = true;
-          ball.vy *= -1;
-          canvas.removeEventListener('click', handleClick);
-          canvas.removeEventListener('touchstart', handleTouch);
-          window.removeEventListener('keydown', handleKeyDown);
-          this.handleTargetHit(t, q, canvas);
-        }
       });
 
       this.animFrameId = requestAnimationFrame(loop);
@@ -702,7 +705,7 @@ export class ArcadeGame {
         ctx.font = 'bold 12px Pretendard';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
-        ctx.fillText(t.text, t.x + t.width / 2, t.y + t.h / 2);
+        ctx.fillText(t.text, t.x + t.width / 2, t.y + t.height / 2);
       });
 
       this.animFrameId = requestAnimationFrame(loop);
