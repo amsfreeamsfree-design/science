@@ -1,4 +1,4 @@
-// Action Arcade Mini-Game Engines (Water Cannon, Stem Frogger Pipe Crossing, Leaf Click-to-Shoot Sunbeam Cannon, Bee Shooter)
+// Action Arcade Mini-Game Engines (Water Cannon, Stem Frogger Pipe Crossing, Leaf Stomata Whack-A-Mole, Bee Shooter)
 
 import { sound } from './audio.js';
 import { useItem } from './shop.js';
@@ -143,7 +143,7 @@ export class ArcadeGame {
     } else if (organ === 'stems') {
       this.runStemFroggerGame(canvas, ctx, q);
     } else if (organ === 'leaves') {
-      this.runBubbleShooterGame(canvas, ctx, q);
+      this.runStomataWhackGame(canvas, ctx, q);
     } else if (organ === 'flowers') {
       this.runBeeShooterGame(canvas, ctx, q);
     }
@@ -470,74 +470,86 @@ export class ArcadeGame {
   }
 
   // =========================================================================
-  // 🍃 GAME 3 [잎]: 버튼 클릭 발사 광합성 탄환 아케이드 (Click-to-Shoot Sunbeam Cannon)
+  // 🍃 GAME 3 [잎]: 광합성 기공 두더지 잡기 아케이드 (Leaf Stomata Whack-A-Mole)
   // =========================================================================
-  runBubbleShooterGame(canvas, ctx, q) {
+  runStomataWhackGame(canvas, ctx, q) {
     const W = canvas.width;
     const H = canvas.height;
 
-    // Cannon sitting at bottom
-    const cannon = { x: W / 2, y: H - 30, angle: -Math.PI / 2 };
-    const bullets = [];
+    // 4 Stomata Holes on the leaf
+    const holes = [
+      { id: 0, x: 170, y: 100, r: 50 },
+      { id: 1, x: 530, y: 100, r: 50 },
+      { id: 2, x: 170, y: 240, r: 50 },
+      { id: 3, x: 530, y: 240, r: 50 }
+    ];
 
-    // Option Target Bricks placed at top
-    const targets = q.options.map((opt, idx) => {
-      const optionWidth = (W - 60) / 4;
+    // Assign 4 options to the 4 holes
+    const Moles = q.options.map((opt, idx) => {
+      const hole = holes[idx];
       return {
         text: opt,
         isAnswer: opt === q.answer,
-        x: 20 + idx * optionWidth + idx * 10,
-        y: 60,
-        width: optionWidth,
-        height: 60,
+        x: hole.x,
+        y: hole.y,
+        r: hole.r,
+        up: true,
         hit: false
       };
     });
 
-    let mousePos = { x: W / 2, y: 50 };
+    let hammerPos = { x: -100, y: -100, show: false };
 
-    const handleMouseMove = (e) => {
+    const handleCanvasClick = (e) => {
       const rect = canvas.getBoundingClientRect();
-      mousePos.x = e.clientX - rect.left;
-      mousePos.y = e.clientY - rect.top;
-      cannon.angle = Math.atan2(mousePos.y - cannon.y, mousePos.x - cannon.x);
-    };
+      const clickX = e.clientX - rect.left;
+      const clickY = e.clientY - rect.top;
 
-    const handleShoot = () => {
-      sound.playBubblePop();
-      const speed = 9;
-      bullets.push({
-        x: cannon.x + Math.cos(cannon.angle) * 35,
-        y: cannon.y + Math.sin(cannon.angle) * 35,
-        vx: Math.cos(cannon.angle) * speed,
-        vy: Math.sin(cannon.angle) * speed,
-        radius: 12
+      hammerPos.x = clickX;
+      hammerPos.y = clickY;
+      hammerPos.show = true;
+      setTimeout(() => hammerPos.show = false, 200);
+
+      Moles.forEach(m => {
+        if (m.hit) return;
+        const dist = Math.hypot(clickX - m.x, clickY - m.y);
+        if (dist < m.r + 10) {
+          m.hit = true;
+          sound.playBubblePop();
+          canvas.removeEventListener('click', handleCanvasClick);
+          this.handleTargetHit(m, q, canvas);
+        }
       });
     };
 
-    canvas.addEventListener('mousemove', handleMouseMove);
-    canvas.addEventListener('click', handleShoot);
-    canvas.addEventListener('touchstart', (e) => {
-      const rect = canvas.getBoundingClientRect();
-      if (e.touches.length > 0) {
-        mousePos.x = e.touches[0].clientX - rect.left;
-        mousePos.y = e.touches[0].clientY - rect.top;
-        cannon.angle = Math.atan2(mousePos.y - cannon.y, mousePos.x - cannon.x);
-        handleShoot();
-      }
-    });
+    canvas.addEventListener('click', handleCanvasClick);
 
-    // Dedicated On-screen Shoot Button
+    // On-screen touch buttons overlay for instant tap
     const overlay = document.getElementById('canvas-controls-overlay');
     if (overlay) {
       overlay.innerHTML = `
-        <div style="display:flex;justify-content:center;width:100%;padding:10px;">
-          <button id="btn-fire-sun" class="primary-btn glow-btn" style="width:240px;padding:14px;font-size:1.15rem;background:linear-gradient(135deg,#f59e0b,#d97706);">
-            ☀️ 광합성 탄환 발사! (클릭)
-          </button>
+        <div style="display:grid;grid-template-columns:repeat(2, 1fr);gap:10px;width:100%;padding:10px;">
+          ${Moles.map((m, idx) => `
+            <button class="primary-btn glow-btn mole-btn" data-mole-idx="${idx}" style="padding:12px;font-size:1.05rem;background:linear-gradient(135deg,#059669,#047857);">
+              🔨 [${idx + 1}] ${m.text}
+            </button>
+          `).join('')}
         </div>
       `;
-      overlay.querySelector('#btn-fire-sun').onclick = handleShoot;
+
+      const moleBtns = overlay.querySelectorAll('.mole-btn');
+      moleBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+          const idx = parseInt(btn.getAttribute('data-mole-idx'), 10);
+          const m = Moles[idx];
+          if (m && !m.hit) {
+            m.hit = true;
+            sound.playBubblePop();
+            canvas.removeEventListener('click', handleCanvasClick);
+            this.handleTargetHit(m, q, canvas);
+          }
+        });
+      });
     }
 
     const loop = () => {
@@ -546,78 +558,49 @@ export class ArcadeGame {
       ctx.fillRect(0, 0, W, H);
 
       ctx.strokeStyle = '#047857';
-      ctx.lineWidth = 3;
+      ctx.lineWidth = 4;
       ctx.strokeRect(10, 10, W - 20, H - 20);
 
-      // Draw Cannon Base & Barrel
-      ctx.save();
-      ctx.translate(cannon.x, cannon.y);
-      ctx.rotate(cannon.angle);
-      ctx.fillStyle = '#fde047';
-      ctx.fillRect(0, -10, 40, 20);
-      ctx.fillStyle = '#f59e0b';
-      ctx.fillRect(30, -12, 10, 24);
-      ctx.restore();
+      // Draw Stomata Holes & Emerging Moles
+      Moles.forEach((m, idx) => {
+        if (m.hit) return;
 
-      ctx.fillStyle = '#10b981';
-      ctx.beginPath();
-      ctx.arc(cannon.x, cannon.y, 24, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.fillStyle = '#ffffff';
-      ctx.font = 'bold 12px Pretendard';
-      ctx.textAlign = 'center';
-      ctx.fillText('🍃 잎 탄환 대포', cannon.x, cannon.y + 35);
-
-      // Update & Draw Bullets
-      for (let i = bullets.length - 1; i >= 0; i--) {
-        const b = bullets[i];
-        b.x += b.vx;
-        b.y += b.vy;
-
-        ctx.fillStyle = '#fde047';
+        // Hole Shadow
+        ctx.fillStyle = '#022c22';
         ctx.beginPath();
-        ctx.arc(b.x, b.y, b.radius, 0, Math.PI * 2);
+        ctx.ellipse(m.x, m.y + 10, m.r, m.r / 2.2, 0, 0, Math.PI * 2);
         ctx.fill();
-        ctx.strokeStyle = '#fef08a';
+        ctx.strokeStyle = '#059669';
         ctx.lineWidth = 3;
         ctx.stroke();
 
-        // Check Brick Collision
-        targets.forEach(t => {
-          if (t.hit) return;
-          if (
-            b.x + b.radius >= t.x && b.x - b.radius <= t.x + t.width &&
-            b.y - b.radius <= t.y + t.height && b.y + b.radius >= t.y
-          ) {
-            t.hit = true;
-            bullets.splice(i, 1);
-            canvas.removeEventListener('mousemove', handleMouseMove);
-            canvas.removeEventListener('click', handleShoot);
-            this.handleTargetHit(t, q, canvas);
-          }
-        });
-
-        if (b.x < 0 || b.x > W || b.y < 0 || b.y > H) {
-          bullets.splice(i, 1);
-        }
-      }
-
-      // Draw Option Target Bricks (Uniform emerald color!)
-      targets.forEach(t => {
-        if (t.hit) return;
-
-        ctx.fillStyle = 'rgba(16, 185, 129, 0.9)';
-        ctx.fillRect(t.x, t.y, t.width, t.height);
-        ctx.strokeStyle = '#d1fae5';
+        // Emerging Stomata Option Card (Whack Target)
+        ctx.fillStyle = 'rgba(16, 185, 129, 0.95)';
+        ctx.beginPath();
+        ctx.roundRect(m.x - 65, m.y - 45, 130, 60, 14);
+        ctx.fill();
+        ctx.strokeStyle = '#a7f3d0';
         ctx.lineWidth = 3;
-        ctx.strokeRect(t.x, t.y, t.width, t.height);
+        ctx.stroke();
 
-        ctx.fillStyle = '#ffffff';
-        ctx.font = 'bold 13px Pretendard';
+        // Number Badge
+        ctx.fillStyle = '#fde047';
+        ctx.font = 'bold 12px Pretendard';
         ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(t.text, t.x + t.width / 2, t.y + t.height / 2);
+        ctx.fillText(`[ 기공 ${idx + 1} ]`, m.x, m.y - 26);
+
+        // Option Text
+        ctx.fillStyle = '#ffffff';
+        ctx.font = 'bold 14px Pretendard';
+        ctx.fillText(m.text, m.x, m.y);
       });
+
+      // Draw Hammer Effect when clicked
+      if (hammerPos.show) {
+        ctx.font = '36px serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('🔨', hammerPos.x, hammerPos.y);
+      }
 
       this.animFrameId = requestAnimationFrame(loop);
     };
